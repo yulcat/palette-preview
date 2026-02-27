@@ -8,13 +8,13 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --color-bg: #f5f3f0;
+    --color-bg: #f5f5f5;
     --color-surface: #ffffff;
-    --color-text: #1c1917;
-    --color-text-muted: #78716c;
+    --color-text: #1a1a1a;
+    --color-text-muted: #737373;
     --color-primary: #6366f1;
-    --color-secondary: #818cf8;
-    --color-border: #e7e5e4;
+    --color-secondary: #a5b4fc;
+    --color-border: #e5e5e5;
     --radius: 8px;
     --shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
@@ -27,6 +27,15 @@
     transition: background 0.3s, color 0.3s;
   }
 
+  .loading-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #f5f5f5;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; color: #666;
+    transition: opacity 0.3s;
+  }
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
   /* ── Controls ── */
   .controls {
     position: sticky; top: 0; z-index: 100;
@@ -36,17 +45,17 @@
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     box-shadow: var(--shadow);
   }
-  .controls h1 { font-size: 1.1rem; font-weight: 700; margin-right: auto; }
+  .controls h1 { font-size: 1.05rem; font-weight: 700; margin-right: auto; }
 
   .btn {
     padding: 8px 16px; border: none; border-radius: var(--radius);
-    font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    font-size: 0.83rem; font-weight: 600; cursor: pointer;
     transition: opacity 0.2s, transform 0.1s;
   }
   .btn:hover { opacity: 0.88; }
   .btn:active { transform: scale(0.97); }
   .btn-primary { background: var(--color-primary); color: #fff; }
-  .btn-secondary { background: var(--color-secondary); color: #fff; }
+  .btn-secondary { background: var(--color-secondary); color: var(--color-text); }
   .btn-outline {
     background: transparent; border: 2px solid var(--color-primary);
     color: var(--color-primary);
@@ -54,28 +63,26 @@
   .mode-toggle {
     background: var(--color-text); color: var(--color-bg);
     padding: 8px 12px; border: none; border-radius: var(--radius);
-    font-size: 0.85rem; cursor: pointer;
+    font-size: 0.83rem; cursor: pointer;
   }
 
-  /* Hue picker */
-  .hue-control {
-    display: flex; align-items: center; gap: 8px;
+  /* Color input */
+  .color-input-group {
+    display: flex; align-items: center; gap: 6px;
   }
-  .hue-control label { font-size: 0.8rem; font-weight: 600; }
-  .hue-slider {
+  .color-input-group label { font-size: 0.8rem; font-weight: 600; }
+  .color-swatch-input {
+    width: 32px; height: 32px; border: 2px solid var(--color-border);
+    border-radius: 6px; cursor: pointer; padding: 0;
     -webkit-appearance: none; appearance: none;
-    width: 120px; height: 8px; border-radius: 4px;
-    background: linear-gradient(to right,
-      oklch(0.7 0.15 0), oklch(0.7 0.15 60), oklch(0.7 0.15 120),
-      oklch(0.7 0.15 180), oklch(0.7 0.15 240), oklch(0.7 0.15 300), oklch(0.7 0.15 360));
-    outline: none;
   }
-  .hue-slider::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none;
-    width: 16px; height: 16px; border-radius: 50%;
-    background: #fff; border: 2px solid #333; cursor: pointer;
+  .color-swatch-input::-webkit-color-swatch-wrapper { padding: 0; }
+  .color-swatch-input::-webkit-color-swatch { border: none; border-radius: 4px; }
+  .color-hex-input {
+    width: 80px; padding: 5px 8px; border: 2px solid var(--color-border);
+    border-radius: var(--radius); font-size: 0.8rem; font-family: monospace;
+    background: var(--color-surface); color: var(--color-text);
   }
-  .hue-value { font-size: 0.8rem; font-family: monospace; min-width: 32px; }
 
   .scheme-select {
     padding: 6px 10px; border: 2px solid var(--color-border);
@@ -85,42 +92,60 @@
 
   /* ── Swatches ── */
   .swatches {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    padding: 14px 20px;
+    display: flex; flex-wrap: wrap; gap: 4px;
+    padding: 12px 20px;
     background: var(--color-surface);
   }
   .swatch {
-    flex: 1; min-width: 80px;
+    flex: 1; min-width: 70px;
     border-radius: var(--radius);
     overflow: hidden;
     box-shadow: var(--shadow);
     border: 1px solid var(--color-border);
   }
   .swatch-color {
-    height: 56px;
+    height: 52px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.7rem; font-weight: 600;
+    font-size: 0.68rem; font-weight: 600;
   }
   .swatch-info {
-    padding: 5px 7px;
+    padding: 4px 6px;
     background: var(--color-surface);
-    font-size: 0.7rem;
+    font-size: 0.68rem;
   }
   .swatch-role { font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; display: block; }
   .swatch-hex { font-family: monospace; color: var(--color-text-muted); }
-  .swatch-oklch { font-family: monospace; color: var(--color-text-muted); font-size: 0.65rem; display: block; }
+  .swatch-shade { font-family: monospace; color: var(--color-text-muted); font-size: 0.62rem; }
+
+  /* ── Full scale ── */
+  .scale-row {
+    display: flex; gap: 2px; padding: 4px 20px;
+    background: var(--color-surface);
+  }
+  .scale-row .scale-label {
+    font-size: 0.7rem; font-weight: 600; min-width: 52px;
+    display: flex; align-items: center;
+  }
+  .scale-chip {
+    flex: 1; height: 28px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.58rem; font-weight: 600;
+    cursor: default;
+    position: relative;
+  }
+  .scale-chip.active { outline: 2px solid var(--color-text); outline-offset: 1px; }
+  .scale-chip span { opacity: 0.8; }
 
   /* ── WCAG ── */
   .wcag-bar {
     padding: 8px 20px;
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
-    font-size: 0.78rem;
-    display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+    font-size: 0.76rem;
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
   }
-  .wcag-item { display: flex; align-items: center; gap: 4px; }
   .wcag-badge {
-    padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.68rem; color: #fff;
+    padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.66rem; color: #fff;
   }
   .wcag-pass { background: #16a34a; }
   .wcag-fail { background: #dc2626; }
@@ -134,7 +159,7 @@
   .css-output pre {
     background: var(--color-bg);
     padding: 12px; border-radius: var(--radius);
-    font-size: 0.78rem; overflow-x: auto;
+    font-size: 0.76rem; overflow-x: auto;
     font-family: 'SF Mono', 'Fira Code', monospace;
     white-space: pre-wrap;
     border: 1px solid var(--color-border);
@@ -154,16 +179,16 @@
     display: flex; justify-content: space-between; align-items: center;
     font-weight: 600;
   }
-  .preview-nav-links { display: flex; gap: 16px; font-size: 0.85rem; opacity: 0.85; }
+  .preview-nav-links { display: flex; gap: 16px; font-size: 0.83rem; opacity: 0.85; }
 
   .preview-hero {
     background: var(--color-surface);
-    padding: 36px 24px; text-align: center;
+    padding: 32px 24px; text-align: center;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     border: 1px solid var(--color-border);
   }
-  .preview-hero h2 { font-size: 1.4rem; margin-bottom: 6px; }
+  .preview-hero h2 { font-size: 1.3rem; margin-bottom: 6px; }
   .preview-hero p { color: var(--color-text-muted); margin-bottom: 14px; }
 
   .preview-cards {
@@ -179,8 +204,8 @@
   }
   .preview-card-header { height: 6px; }
   .preview-card-body { padding: 14px; }
-  .preview-card-body h3 { font-size: 0.95rem; margin-bottom: 4px; }
-  .preview-card-body p { font-size: 0.82rem; color: var(--color-text-muted); margin-bottom: 10px; }
+  .preview-card-body h3 { font-size: 0.92rem; margin-bottom: 4px; }
+  .preview-card-body p { font-size: 0.8rem; color: var(--color-text-muted); margin-bottom: 10px; }
 
   .preview-form {
     background: var(--color-surface);
@@ -189,52 +214,50 @@
     display: flex; flex-direction: column; gap: 10px;
     border: 1px solid var(--color-border);
   }
-  .preview-form label { font-size: 0.82rem; font-weight: 600; }
-  .preview-form input, .preview-form textarea {
+  .preview-form label { font-size: 0.8rem; font-weight: 600; }
+  .preview-form input[type="text"], .preview-form input[type="email"], .preview-form textarea {
     padding: 8px 12px; border: 2px solid var(--color-border);
-    border-radius: var(--radius); font-size: 0.85rem;
+    border-radius: var(--radius); font-size: 0.83rem;
     background: var(--color-bg); color: var(--color-text);
   }
   .preview-form input:focus, .preview-form textarea:focus {
     outline: none; border-color: var(--color-primary);
   }
-  .preview-form textarea { resize: vertical; min-height: 56px; }
+  .preview-form textarea { resize: vertical; min-height: 52px; }
   .form-row { display: flex; gap: 8px; }
 
   .preview-tags { display: flex; gap: 6px; flex-wrap: wrap; }
-  .tag {
-    padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
-  }
+  .tag { padding: 3px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
 
   .preview-footer {
     text-align: center; padding: 14px;
-    font-size: 0.78rem; color: var(--color-text-muted);
+    font-size: 0.76rem; color: var(--color-text-muted);
   }
 
   @media (max-width: 600px) {
     .controls { padding: 10px 12px; gap: 6px; }
-    .hue-slider { width: 80px; }
-    .swatches { padding: 10px 12px; }
+    .swatches { padding: 8px 12px; }
+    .scale-row { padding: 4px 12px; }
     .preview { padding: 0 12px; }
-    .swatch { min-width: 55px; }
+    .swatch { min-width: 50px; }
   }
 </style>
 </head>
 <body>
 
+<div class="loading-overlay" id="loading">🎨 Loading color engine...</div>
+
 <div class="controls">
   <h1>🎨 Palette Preview</h1>
-  <div class="hue-control">
-    <label>Hue</label>
-    <input type="range" class="hue-slider" id="hueSlider" min="0" max="360" value="260">
-    <span class="hue-value" id="hueValue">260°</span>
+  <div class="color-input-group">
+    <label>Primary</label>
+    <input type="color" class="color-swatch-input" id="colorPicker" value="#6366f1">
+    <input type="text" class="color-hex-input" id="hexInput" value="#6366f1" maxlength="7">
   </div>
   <select class="scheme-select" id="schemeSelect">
-    <option value="mono">Monochromatic</option>
-    <option value="analogous">Analogous (±40°)</option>
-    <option value="complementary">Complementary</option>
-    <option value="split">Split Complementary</option>
-    <option value="colormind">🤖 Colormind API</option>
+    <option value="single">Single Hue</option>
+    <option value="analogous">+ Analogous accent</option>
+    <option value="complementary">+ Complementary accent</option>
   </select>
   <button class="btn btn-primary" onclick="randomize()">🎲 Random</button>
   <button class="btn btn-outline" onclick="copyCSS()">Copy CSS</button>
@@ -242,6 +265,8 @@
 </div>
 
 <div class="swatches" id="swatches"></div>
+<div class="scale-row" id="colorScale"></div>
+<div class="scale-row" id="neutralScale"></div>
 <div class="wcag-bar" id="wcag"></div>
 <div class="css-output"><pre id="cssOutput"></pre></div>
 
@@ -266,7 +291,7 @@
         <p>A short description of this feature and why it matters to users.</p>
         <div class="preview-tags">
           <span class="tag" style="background:var(--color-primary);color:#fff">New</span>
-          <span class="tag" style="background:var(--color-secondary);color:#fff">Beta</span>
+          <span class="tag" style="background:var(--color-secondary);color:var(--color-text)">Beta</span>
         </div>
       </div>
     </div>
@@ -275,7 +300,7 @@
       <div class="preview-card-body">
         <h3>Feature Two</h3>
         <p>Another important feature that users will love to explore daily.</p>
-        <button class="btn btn-outline" style="font-size:0.78rem;padding:4px 12px">Details →</button>
+        <button class="btn btn-outline" style="font-size:0.76rem;padding:4px 12px">Details →</button>
       </div>
     </div>
     <div class="preview-card">
@@ -283,7 +308,7 @@
       <div class="preview-card-body">
         <h3>Feature Three</h3>
         <p>Great things come in threes. This one is no exception at all.</p>
-        <button class="btn btn-secondary" style="font-size:0.78rem;padding:4px 12px">Try It</button>
+        <button class="btn btn-secondary" style="font-size:0.76rem;padding:4px 12px">Try It</button>
       </div>
     </div>
   </div>
@@ -299,363 +324,263 @@
     </div>
   </div>
 
-  <div class="preview-footer">Built with 🎨 Palette Preview — OKLCH-based palette derivation</div>
+  <div class="preview-footer">
+    Built with 🎨 Palette Preview — Powered by
+    <a href="https://github.com/meodai/dittoTones" target="_blank" style="color:var(--color-primary)">dittoTones</a>
+    (Tailwind v4 color DNA)
+  </div>
 </div>
 
-<script>
-// ═══════════════════════════════════════════════════════════
-// OKLCH ↔ sRGB conversion utilities
-// Using simplified but accurate conversion chain:
-// OKLCH → OKLab → linear-sRGB → sRGB
-// ═══════════════════════════════════════════════════════════
-
-function oklchToOklab(L, C, H) {
-  const hRad = H * Math.PI / 180;
-  return [L, C * Math.cos(hRad), C * Math.sin(hRad)];
-}
-
-function oklabToLinearRGB(L, a, b) {
-  // OKLab → LMS
-  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
-  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
-
-  const l = l_ * l_ * l_;
-  const m = m_ * m_ * m_;
-  const s = s_ * s_ * s_;
-
-  // LMS → linear sRGB
-  return [
-    +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-    -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
-  ];
-}
-
-function linearToSrgb(c) {
-  return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
-}
-
-function srgbToLinear(c) {
-  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-}
-
-function oklchToRGB(L, C, H) {
-  const [labL, labA, labB] = oklchToOklab(L, C, H);
-  const [lr, lg, lb] = oklabToLinearRGB(labL, labA, labB);
-  return [
-    Math.round(Math.min(1, Math.max(0, linearToSrgb(lr))) * 255),
-    Math.round(Math.min(1, Math.max(0, linearToSrgb(lg))) * 255),
-    Math.round(Math.min(1, Math.max(0, linearToSrgb(lb))) * 255),
-  ];
-}
-
-function rgbToHex(r, g, b) {
-  return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
-}
-
-// Relative luminance for WCAG contrast
-function luminance(r, g, b) {
-  const [rs, gs, bs] = [r, g, b].map(c => srgbToLinear(c / 255));
-  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
-}
-
-function contrastRatio(rgb1, rgb2) {
-  const l1 = luminance(...rgb1);
-  const l2 = luminance(...rgb2);
-  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-}
-
-// Check if OKLCH color is within sRGB gamut
-function inGamut(L, C, H) {
-  const [labL, labA, labB] = oklchToOklab(L, C, H);
-  const [lr, lg, lb] = oklabToLinearRGB(labL, labA, labB);
-  const eps = 0.001;
-  return lr >= -eps && lr <= 1 + eps && lg >= -eps && lg <= 1 + eps && lb >= -eps && lb <= 1 + eps;
-}
-
-// Clamp chroma to gamut
-function clampChroma(L, C, H) {
-  if (inGamut(L, C, H)) return C;
-  let lo = 0, hi = C;
-  for (let i = 0; i < 20; i++) {
-    const mid = (lo + hi) / 2;
-    if (inGamut(L, mid, H)) lo = mid; else hi = mid;
-  }
-  return lo;
-}
+<script type="module">
+import { DittoTones } from 'https://esm.sh/dittotones@0.10.0';
+import { tailwindRamps } from 'https://esm.sh/dittotones@0.10.0/ramps/tailwind';
+import { formatHex, oklch, parse } from 'https://esm.sh/culori@4';
 
 // ═══════════════════════════════════════════════════════════
-// Palette Generation — derive all colors from one hue
+// Init dittoTones with Tailwind's color DNA
 // ═══════════════════════════════════════════════════════════
+const ditto = new DittoTones({ ramps: tailwindRamps });
 
 let darkMode = false;
-let currentPalette = null; // { bg, surface, text, textMuted, primary, secondary, border } each = {oklch, rgb, hex}
 
-function makeColor(L, C, H) {
-  C = clampChroma(L, C, H);
-  const rgb = oklchToRGB(L, C, H);
-  return {
-    oklch: [L, C, H],
-    rgb,
-    hex: rgbToHex(...rgb),
-  };
-}
+// Role mapping: which Tailwind shade → which UI role
+// Color scale = the accent color ramp
+// Neutral scale = same hue but desaturated (use gray-ish neutral from Tailwind)
+const LIGHT_ROLES = {
+  bg:        { source: 'neutral', shade: '50' },
+  surface:   { source: 'neutral', shade: '100' },
+  border:    { source: 'neutral', shade: '200' },
+  textMuted: { source: 'neutral', shade: '500' },
+  text:      { source: 'neutral', shade: '900' },
+  primary:   { source: 'color',   shade: '500' },
+  secondary: { source: 'color',   shade: '200' },
+};
 
-// RGB → OKLCH (for Colormind import)
-function rgbToOklch(r, g, b) {
-  // sRGB → linear
-  const lr = srgbToLinear(r / 255);
-  const lg = srgbToLinear(g / 255);
-  const lb = srgbToLinear(b / 255);
+const DARK_ROLES = {
+  bg:        { source: 'neutral', shade: '950' },
+  surface:   { source: 'neutral', shade: '900' },
+  border:    { source: 'neutral', shade: '800' },
+  textMuted: { source: 'neutral', shade: '400' },
+  text:      { source: 'neutral', shade: '50' },
+  primary:   { source: 'color',   shade: '400' },
+  secondary: { source: 'color',   shade: '700' },
+};
 
-  // linear sRGB → LMS (via OKLab matrix)
-  const l_ = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
-  const m_ = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
-  const s_ = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
-
-  const L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_;
-  const a = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_;
-  const bv = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_;
-
-  const C = Math.sqrt(a * a + bv * bv);
-  let H = Math.atan2(bv, a) * 180 / Math.PI;
-  if (H < 0) H += 360;
-
-  return [L, C, H];
-}
-
-function generatePalette(hue, scheme) {
-  const H = hue;
-
-  // Determine secondary hue based on scheme
-  let H2;
-  switch (scheme) {
-    case 'analogous':      H2 = (H + 40) % 360; break;
-    case 'complementary':  H2 = (H + 180) % 360; break;
-    case 'split':          H2 = (H + 150) % 360; break;
-    default:               H2 = H; break; // mono: same hue, different chroma
-  }
-
-  // Primary always dominant: higher chroma, optimal lightness
-  // Secondary always subordinate: lower chroma, shifted lightness
-  if (darkMode) {
-    return {
-      bg:        makeColor(0.18, 0.01, H),
-      surface:   makeColor(0.23, 0.015, H),
-      text:      makeColor(0.93, 0.01, H),
-      textMuted: makeColor(0.65, 0.02, H),
-      primary:   makeColor(0.70, 0.17, H),
-      secondary: makeColor(0.58, scheme === 'mono' ? 0.07 : 0.10, H2), // clearly subordinate
-      border:    makeColor(0.32, 0.02, H),
-    };
-  } else {
-    return {
-      bg:        makeColor(0.95, 0.008, H),
-      surface:   makeColor(0.99, 0.003, H),
-      text:      makeColor(0.20, 0.015, H),
-      textMuted: makeColor(0.50, 0.03, H),
-      primary:   makeColor(0.55, 0.20, H),         // high chroma, clear star
-      secondary: makeColor(0.68, scheme === 'mono' ? 0.08 : 0.12, H2), // lighter, less chroma
-      border:    makeColor(0.88, 0.01, H),
-    };
-  }
-}
-
-// Colormind: fetch 5 colors, extract primary/secondary, derive the rest
-async function generateFromColormind() {
-  const resp = await fetch('http://colormind.io/api/', {
-    method: 'POST',
-    body: JSON.stringify({ model: 'default' })
-  });
-  const data = await resp.json();
-  const colors = data.result; // 5x [r,g,b]
-
-  // Convert all to OKLCH and rank by chroma
-  const withOklch = colors.map((rgb, i) => {
-    const [L, C, H] = rgbToOklch(...rgb);
-    return { rgb, L, C, H, idx: i };
-  });
-
-  // Sort by chroma descending — most vivid first
-  const byChroma = [...withOklch].sort((a, b) => b.C - a.C);
-
-  // Primary = most chromatic, Secondary = second most (but ensure subordinate)
-  const pri = byChroma[0];
-  const sec = byChroma[1];
-
-  const H = pri.H;
-
-  // Derive neutrals from primary hue (tinted neutrals)
-  if (darkMode) {
-    return {
-      bg:        makeColor(0.18, 0.01, H),
-      surface:   makeColor(0.23, 0.015, H),
-      text:      makeColor(0.93, 0.01, H),
-      textMuted: makeColor(0.65, 0.02, H),
-      primary:   makeColor(pri.L, pri.C, pri.H),
-      secondary: makeColor(
-        Math.min(sec.L, pri.L - 0.08),  // ensure visually subordinate
-        Math.min(sec.C, pri.C * 0.7),
-        sec.H
-      ),
-      border:    makeColor(0.32, 0.02, H),
-    };
-  } else {
-    return {
-      bg:        makeColor(0.95, 0.008, H),
-      surface:   makeColor(0.99, 0.003, H),
-      text:      makeColor(0.20, 0.015, H),
-      textMuted: makeColor(0.50, 0.03, H),
-      primary:   makeColor(pri.L, pri.C, pri.H),
-      secondary: makeColor(
-        Math.max(sec.L, pri.L + 0.08),  // lighter than primary
-        Math.min(sec.C, pri.C * 0.65),
-        sec.H
-      ),
-      border:    makeColor(0.88, 0.01, H),
-    };
-  }
-}
-
-function applyPalette(palette) {
-  currentPalette = palette;
-  const root = document.documentElement;
-
-  const mapping = {
-    'bg': '--color-bg',
-    'surface': '--color-surface',
-    'text': '--color-text',
-    'textMuted': '--color-text-muted',
-    'primary': '--color-primary',
-    'secondary': '--color-secondary',
-    'border': '--color-border',
-  };
-
-  for (const [key, cssVar] of Object.entries(mapping)) {
-    root.style.setProperty(cssVar, palette[key].hex);
-  }
-
-  updateSwatches(palette);
-  updateWCAG(palette);
-  updateCSSOutput(palette);
-}
-
-const ROLE_ORDER = ['bg', 'surface', 'border', 'textMuted', 'text', 'primary', 'secondary'];
 const ROLE_LABELS = {
   bg: 'Background', surface: 'Surface', text: 'Text',
   textMuted: 'Muted', primary: 'Primary', secondary: 'Secondary',
   border: 'Border',
 };
+const ROLE_ORDER = ['bg', 'surface', 'border', 'textMuted', 'text', 'primary', 'secondary'];
+const SHADE_KEYS = ['50','100','200','300','400','500','600','700','800','900','950'];
 
-function updateSwatches(palette) {
-  const container = document.getElementById('swatches');
-  container.innerHTML = '';
-  for (const role of ROLE_ORDER) {
-    const c = palette[role];
-    const textOnSwatch = luminance(...c.rgb) > 0.4 ? '#000' : '#fff';
-    const [L, C, H] = c.oklch;
-    container.innerHTML += `
-      <div class="swatch">
-        <div class="swatch-color" style="background:${c.hex};color:${textOnSwatch}">
-          ${c.hex.toUpperCase()}
-        </div>
-        <div class="swatch-info">
-          <span class="swatch-role">${ROLE_LABELS[role]}</span>
-          <span class="swatch-hex">${c.hex}</span>
-          <span class="swatch-oklch">L${L.toFixed(2)} C${C.toFixed(3)} H${Math.round(H)}</span>
-        </div>
-      </div>`;
+// ═══════════════════════════════════════════════════════════
+// Generate scales and derive palette
+// ═══════════════════════════════════════════════════════════
+
+function generateNeutralHex(primaryHex) {
+  // Neutral = same hue as primary but very low chroma
+  const p = oklch(parse(primaryHex));
+  if (!p) return null;
+  // Create a low-chroma version of the primary for neutral generation
+  const neutralColor = formatHex({ mode: 'oklch', l: p.l, c: Math.min(p.c * 0.12, 0.02), h: p.h });
+  return neutralColor;
+}
+
+function getSecondaryInputHex(primaryHex, scheme) {
+  const p = oklch(parse(primaryHex));
+  if (!p || scheme === 'single') return null;
+
+  let hueShift = scheme === 'analogous' ? 40 : 180;
+  const newHue = ((p.h || 0) + hueShift) % 360;
+  const secColor = { mode: 'oklch', l: p.l, c: p.c * 0.85, h: newHue };
+  return formatHex(secColor);
+}
+
+function scaleToHexMap(scale) {
+  const map = {};
+  for (const [shade, color] of Object.entries(scale)) {
+    map[shade] = formatHex(color);
   }
+  return map;
 }
 
-function updateWCAG(palette) {
-  const container = document.getElementById('wcag');
-  const pairs = [
-    ['text', 'bg', 'Text/BG'],
-    ['text', 'surface', 'Text/Surface'],
-    ['textMuted', 'bg', 'Muted/BG'],
-    ['textMuted', 'surface', 'Muted/Surface'],
-    ['primary', 'bg', 'Primary/BG'],
-    ['primary', 'surface', 'Primary/Surface'],
-  ];
-  container.innerHTML = '<strong style="font-size:0.75rem">WCAG AA (4.5:1):</strong> ' + pairs.map(([fg, bg, label]) => {
-    const ratio = contrastRatio(palette[fg].rgb, palette[bg].rgb);
-    const pass = ratio >= 4.5;
-    return `<span class="wcag-item">
-      <span class="wcag-badge ${pass ? 'wcag-pass' : 'wcag-fail'}">${ratio.toFixed(1)}</span>
-      <span>${label}</span>
-    </span>`;
-  }).join('');
+function luminance(hex) {
+  const r = parseInt(hex.slice(1,3), 16) / 255;
+  const g = parseInt(hex.slice(3,5), 16) / 255;
+  const b = parseInt(hex.slice(5,7), 16) / 255;
+  const toLinear = c => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
 }
 
-function updateCSSOutput(palette) {
-  const vars = [
-    ['--color-bg', 'bg'],
-    ['--color-surface', 'surface'],
-    ['--color-text', 'text'],
-    ['--color-text-muted', 'textMuted'],
-    ['--color-primary', 'primary'],
-    ['--color-secondary', 'secondary'],
-    ['--color-border', 'border'],
-  ];
-  const lines = vars.map(([name, key]) => {
-    const c = palette[key];
-    const [L, C, H] = c.oklch;
-    return `  ${name}: ${c.hex};  /* oklch(${L.toFixed(2)} ${C.toFixed(3)} ${Math.round(H)}) */`;
-  });
-  document.getElementById('cssOutput').textContent = `:root {\n${lines.join('\n')}\n}`;
+function contrastRatio(hex1, hex2) {
+  const l1 = luminance(hex1);
+  const l2 = luminance(hex2);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+
+function textOnColor(hex) {
+  return luminance(hex) > 0.4 ? '#000000' : '#ffffff';
 }
 
 // ═══════════════════════════════════════════════════════════
-// UI Handlers
+// Main update
 // ═══════════════════════════════════════════════════════════
 
-async function update() {
-  const hue = parseInt(document.getElementById('hueSlider').value);
+function update() {
+  const primaryHex = document.getElementById('hexInput').value;
   const scheme = document.getElementById('schemeSelect').value;
-  document.getElementById('hueValue').textContent = hue + '°';
 
-  // Disable hue slider for Colormind (it picks its own colors)
-  document.getElementById('hueSlider').disabled = (scheme === 'colormind');
-  document.querySelector('.hue-control').style.opacity = (scheme === 'colormind') ? '0.4' : '1';
+  // Generate color scale from primary
+  let colorResult;
+  try {
+    colorResult = ditto.generate(primaryHex);
+  } catch (e) {
+    console.error('dittoTones error:', e);
+    return;
+  }
+  const colorScale = scaleToHexMap(colorResult.scale);
 
-  if (scheme === 'colormind') {
+  // Generate neutral scale (tinted gray from primary hue)
+  const neutralHex = generateNeutralHex(primaryHex);
+  const neutralResult = ditto.generate(neutralHex || '#737373');
+  const neutralScale = scaleToHexMap(neutralResult.scale);
+
+  // If scheme uses secondary accent, generate that too
+  let secondaryScale = colorScale; // default: same as primary
+  const secHex = getSecondaryInputHex(primaryHex, scheme);
+  if (secHex) {
     try {
-      const palette = await generateFromColormind();
-      applyPalette(palette);
-      // Update hue slider to show the detected primary hue
-      const detectedHue = Math.round(palette.primary.oklch[2]);
-      document.getElementById('hueSlider').value = detectedHue;
-      document.getElementById('hueValue').textContent = detectedHue + '°';
+      const secResult = ditto.generate(secHex);
+      secondaryScale = scaleToHexMap(secResult.scale);
     } catch (e) {
-      console.error('Colormind error:', e);
-      // Fallback to mono
-      applyPalette(generatePalette(hue, 'mono'));
+      secondaryScale = colorScale;
     }
-  } else {
-    applyPalette(generatePalette(hue, scheme));
   }
+
+  // Pick roles
+  const roles = darkMode ? DARK_ROLES : LIGHT_ROLES;
+  const palette = {};
+  for (const [role, def] of Object.entries(roles)) {
+    if (def.source === 'neutral') {
+      palette[role] = neutralScale[def.shade];
+    } else if (role === 'secondary' && scheme !== 'single') {
+      palette[role] = secondaryScale[def.shade];
+    } else {
+      palette[role] = colorScale[def.shade];
+    }
+  }
+
+  // Apply CSS variables
+  const root = document.documentElement;
+  const varMap = {
+    bg: '--color-bg', surface: '--color-surface', text: '--color-text',
+    textMuted: '--color-text-muted', primary: '--color-primary',
+    secondary: '--color-secondary', border: '--color-border',
+  };
+  for (const [role, cssVar] of Object.entries(varMap)) {
+    root.style.setProperty(cssVar, palette[role]);
+  }
+
+  // Update swatches
+  const swatchContainer = document.getElementById('swatches');
+  swatchContainer.innerHTML = ROLE_ORDER.map(role => {
+    const hex = palette[role];
+    const tc = textOnColor(hex);
+    const roleDef = roles[role];
+    return `<div class="swatch">
+      <div class="swatch-color" style="background:${hex};color:${tc}">${hex.toUpperCase()}</div>
+      <div class="swatch-info">
+        <span class="swatch-role">${ROLE_LABELS[role]}</span>
+        <span class="swatch-shade">${roleDef.source}/${roleDef.shade}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Render full scales
+  renderScale('colorScale', 'Color', colorScale, roles, 'color');
+  renderScale('neutralScale', 'Neutral', neutralScale, roles, 'neutral');
+
+  // WCAG
+  const wcagContainer = document.getElementById('wcag');
+  const pairs = [
+    ['text','bg'], ['text','surface'], ['textMuted','bg'],
+    ['textMuted','surface'], ['primary','bg'], ['primary','surface'],
+  ];
+  wcagContainer.innerHTML = '<strong style="font-size:0.73rem">WCAG AA:</strong> ' +
+    pairs.map(([fg, bg]) => {
+      const ratio = contrastRatio(palette[fg], palette[bg]);
+      const pass = ratio >= 4.5;
+      return `<span style="display:flex;align-items:center;gap:3px">
+        <span class="wcag-badge ${pass ? 'wcag-pass' : 'wcag-fail'}">${ratio.toFixed(1)}</span>
+        <span style="font-size:0.73rem">${ROLE_LABELS[fg]}/${ROLE_LABELS[bg]}</span>
+      </span>`;
+    }).join('');
+
+  // CSS output
+  const cssLines = Object.entries(varMap).map(([role, varName]) =>
+    `  ${varName}: ${palette[role]};`
+  );
+  document.getElementById('cssOutput').textContent = `:root {\n${cssLines.join('\n')}\n}`;
 }
 
-function randomize() {
-  const scheme = document.getElementById('schemeSelect').value;
-  if (scheme === 'colormind') {
-    update(); // re-fetch from Colormind
-  } else {
-    const hue = Math.floor(Math.random() * 360);
-    document.getElementById('hueSlider').value = hue;
+function renderScale(containerId, label, scale, roles, sourceType) {
+  const container = document.getElementById(containerId);
+  // Find which shades are "active" (used in current roles)
+  const activeShades = new Set();
+  for (const [role, def] of Object.entries(roles)) {
+    if (def.source === sourceType) activeShades.add(def.shade);
+  }
+
+  container.innerHTML = `<span class="scale-label">${label}</span>` +
+    SHADE_KEYS.map(shade => {
+      const hex = scale[shade];
+      const tc = textOnColor(hex);
+      const isActive = activeShades.has(shade);
+      return `<div class="scale-chip ${isActive ? 'active' : ''}" style="background:${hex};color:${tc}" title="${shade}: ${hex}">
+        <span>${shade}</span>
+      </div>`;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI handlers
+// ═══════════════════════════════════════════════════════════
+
+function syncInputs(hex) {
+  document.getElementById('colorPicker').value = hex;
+  document.getElementById('hexInput').value = hex;
+}
+
+document.getElementById('colorPicker').addEventListener('input', e => {
+  document.getElementById('hexInput').value = e.target.value;
+  update();
+});
+
+document.getElementById('hexInput').addEventListener('input', e => {
+  let v = e.target.value;
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+    document.getElementById('colorPicker').value = v;
     update();
   }
-}
+});
 
-function toggleMode() {
+document.getElementById('schemeSelect').addEventListener('change', update);
+
+window.randomize = () => {
+  const hue = Math.floor(Math.random() * 360);
+  const hex = formatHex({ mode: 'oklch', l: 0.55, c: 0.2, h: hue });
+  syncInputs(hex);
+  update();
+};
+
+window.toggleMode = () => {
   darkMode = !darkMode;
   document.getElementById('modeBtn').textContent = darkMode ? '☀️ Light' : '🌙 Dark';
   update();
-}
+};
 
-function copyCSS() {
+window.copyCSS = () => {
   const text = document.getElementById('cssOutput').textContent;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.querySelector('.btn-outline');
@@ -663,14 +588,11 @@ function copyCSS() {
     btn.textContent = '✓ Copied!';
     setTimeout(() => btn.textContent = orig, 1500);
   });
-}
-
-// Event listeners
-document.getElementById('hueSlider').addEventListener('input', update);
-document.getElementById('schemeSelect').addEventListener('change', update);
+};
 
 // Init
 update();
+document.getElementById('loading').classList.add('hidden');
 </script>
 </body>
 </html>
