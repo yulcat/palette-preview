@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Palette Preview</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --color-bg: #f5f5f5;
+    --color-surface: #ffffff;
+    --color-text: #1a1a1a;
+    --color-primary: #6366f1;
+    --color-secondary: #8b5cf6;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--color-surface);
+    border-bottom: 1px solid rgba(128,128,128,0.2);
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    box-shadow: var(--shadow);
+  }
+  .controls h1 { font-size: 1.1rem; font-weight: 700; margin-right: auto; }
+  .btn {
+    padding: 8px 16px; border: none; border-radius: var(--radius);
+    font-size: 0.875rem; font-weight: 600; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: var(--color-primary); color: #fff; }
+  .btn-secondary { background: var(--color-secondary); color: #fff; }
+  .btn-outline {
+    background: transparent; border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+  }
+  .mode-toggle {
+    background: var(--color-text); color: var(--color-bg);
+    padding: 8px 12px; border: none; border-radius: var(--radius);
+    font-size: 0.875rem; cursor: pointer;
+  }
+
+  /* ── Swatches ── */
+  .swatches {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 16px 20px;
+    background: var(--color-surface);
+  }
+  .swatch {
+    flex: 1; min-width: 100px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    position: relative;
+    cursor: pointer;
+  }
+  .swatch-color {
+    height: 64px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    color: #fff;
+  }
+  .swatch-info {
+    padding: 6px 8px;
+    background: var(--color-surface);
+    font-size: 0.75rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .swatch-role { font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .swatch-hex { font-family: monospace; }
+  .swatch-lock {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(0,0,0,0.4); color: #fff;
+    border: none; border-radius: 50%; width: 24px; height: 24px;
+    font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .swatch-lock.locked { background: rgba(255,255,255,0.8); color: #000; }
+
+  /* ── WCAG ── */
+  .wcag-bar {
+    padding: 8px 20px;
+    background: var(--color-surface);
+    border-top: 1px solid rgba(128,128,128,0.15);
+    font-size: 0.8rem;
+    display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  }
+  .wcag-item { display: flex; align-items: center; gap: 4px; }
+  .wcag-badge {
+    padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.7rem;
+    color: #fff;
+  }
+  .wcag-pass { background: #16a34a; }
+  .wcag-fail { background: #dc2626; }
+
+  /* ── CSS Output ── */
+  .css-output {
+    padding: 12px 20px;
+    background: var(--color-surface);
+    border-top: 1px solid rgba(128,128,128,0.15);
+  }
+  .css-output pre {
+    background: var(--color-bg);
+    padding: 12px; border-radius: var(--radius);
+    font-size: 0.8rem; overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    white-space: pre-wrap;
+  }
+
+  /* ── Preview ── */
+  .preview {
+    max-width: 800px; margin: 24px auto; padding: 0 20px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  .preview-nav {
+    background: var(--color-primary);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    display: flex; justify-content: space-between; align-items: center;
+    font-weight: 600;
+  }
+  .preview-nav-links { display: flex; gap: 16px; font-size: 0.875rem; opacity: 0.85; }
+
+  .preview-hero {
+    background: var(--color-surface);
+    padding: 40px 24px; text-align: center;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .preview-hero h2 { font-size: 1.5rem; margin-bottom: 8px; }
+  .preview-hero p { opacity: 0.7; margin-bottom: 16px; }
+
+  .preview-cards {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .preview-card {
+    background: var(--color-surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .preview-card-header {
+    height: 8px;
+  }
+  .preview-card-body { padding: 16px; }
+  .preview-card-body h3 { font-size: 1rem; margin-bottom: 6px; }
+  .preview-card-body p { font-size: 0.85rem; opacity: 0.7; margin-bottom: 12px; }
+
+  .preview-form {
+    background: var(--color-surface);
+    padding: 20px; border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .preview-form label { font-size: 0.85rem; font-weight: 600; }
+  .preview-form input, .preview-form textarea {
+    padding: 8px 12px; border: 2px solid rgba(128,128,128,0.25);
+    border-radius: var(--radius); font-size: 0.875rem;
+    background: var(--color-bg); color: var(--color-text);
+  }
+  .preview-form input:focus, .preview-form textarea:focus {
+    outline: none; border-color: var(--color-primary);
+  }
+  .preview-form textarea { resize: vertical; min-height: 60px; }
+  .form-row { display: flex; gap: 8px; }
+
+  .preview-footer {
+    text-align: center; padding: 16px;
+    font-size: 0.8rem; opacity: 0.5;
+  }
+
+  .preview-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+  }
+
+  @media (max-width: 600px) {
+    .controls { padding: 10px 12px; }
+    .swatches { padding: 12px; }
+    .preview { padding: 0 12px; }
+    .swatch { min-width: 60px; }
+    .swatch-info { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <h1>🎨 Palette Preview</h1>
+  <button class="btn btn-primary" onclick="generate()">Generate</button>
+  <button class="btn btn-outline" onclick="copyCSS()">Copy CSS</button>
+  <button class="mode-toggle" onclick="toggleMode()" id="modeBtn">🌙 Dark</button>
+</div>
+
+<div class="swatches" id="swatches"></div>
+<div class="wcag-bar" id="wcag"></div>
+<div class="css-output"><pre id="cssOutput"></pre></div>
+
+<div class="preview">
+  <nav class="preview-nav">
+    <span>MyApp</span>
+    <div class="preview-nav-links"><span>Home</span><span>About</span><span>Contact</span></div>
+  </nav>
+
+  <div class="preview-hero">
+    <h2>Welcome to the App</h2>
+    <p>This is a preview of your color palette applied to a real UI layout.</p>
+    <button class="btn btn-primary" style="margin-right:8px">Get Started</button>
+    <button class="btn btn-secondary">Learn More</button>
+  </div>
+
+  <div class="preview-cards">
+    <div class="preview-card">
+      <div class="preview-card-header" style="background:var(--color-primary)"></div>
+      <div class="preview-card-body">
+        <h3>Feature One</h3>
+        <p>A short description of this feature and why it matters.</p>
+        <div class="preview-tags">
+          <span class="tag" style="background:var(--color-primary);color:#fff">New</span>
+          <span class="tag" style="background:var(--color-secondary);color:#fff">Beta</span>
+        </div>
+      </div>
+    </div>
+    <div class="preview-card">
+      <div class="preview-card-header" style="background:var(--color-secondary)"></div>
+      <div class="preview-card-body">
+        <h3>Feature Two</h3>
+        <p>Another important feature that users will love to explore.</p>
+        <button class="btn btn-outline" style="font-size:0.8rem;padding:4px 12px">Details →</button>
+      </div>
+    </div>
+    <div class="preview-card">
+      <div class="preview-card-header" style="background:var(--color-text);opacity:0.3"></div>
+      <div class="preview-card-body">
+        <h3>Feature Three</h3>
+        <p>Great things come in threes. This one is no exception.</p>
+        <button class="btn btn-secondary" style="font-size:0.8rem;padding:4px 12px">Try It</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="preview-form">
+    <label>Contact Us</label>
+    <input type="text" placeholder="Your name">
+    <input type="email" placeholder="Email address">
+    <textarea placeholder="Your message..."></textarea>
+    <div class="form-row">
+      <button class="btn btn-primary" style="flex:1">Send</button>
+      <button class="btn btn-outline" style="flex:1">Cancel</button>
+    </div>
+  </div>
+
+  <div class="preview-footer">Built with 🎨 Palette Preview — Colors from Colormind API</div>
+</div>
+
+<script>
+const ROLES = ['bg', 'surface', 'text', 'primary', 'secondary'];
+const ROLE_LABELS = { bg: 'Background', surface: 'Surface', text: 'Text', primary: 'Primary', secondary: 'Secondary' };
+
+let currentColors = null; // array of 5 [r,g,b]
+let locked = [false, false, false, false, false]; // lock per role slot
+let darkMode = false;
+
+function luminance(r, g, b) {
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+function contrastRatio(c1, c2) {
+  const l1 = luminance(...c1);
+  const l2 = luminance(...c2);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function saturation(r, g, b) {
+  const max = Math.max(r, g, b) / 255;
+  const min = Math.min(r, g, b) / 255;
+  if (max === 0) return 0;
+  return (max - min) / max;
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
+function assignRoles(colors) {
+  // Calculate luminance for each
+  const indexed = colors.map((c, i) => ({
+    rgb: c, lum: luminance(...c), sat: saturation(...c), idx: i
+  }));
+
+  // Sort by luminance
+  const byLum = [...indexed].sort((a, b) => a.lum - b.lum);
+  // Sort by saturation (desc)
+  const bySat = [...indexed].sort((a, b) => b.sat - a.sat);
+
+  let bg, surface, text, primary, secondary;
+
+  if (darkMode) {
+    bg = byLum[0]; // darkest
+    surface = byLum[1]; // second darkest
+    text = byLum[4]; // lightest
+  } else {
+    bg = byLum[4]; // lightest
+    surface = byLum[3]; // second lightest
+    text = byLum[0]; // darkest
+  }
+
+  const used = new Set([bg.idx, surface.idx, text.idx]);
+
+  // primary = most saturated among unused, then secondary
+  const remaining = bySat.filter(c => !used.has(c.idx));
+  if (remaining.length >= 2) {
+    primary = remaining[0];
+    secondary = remaining[1];
+  } else if (remaining.length === 1) {
+    primary = remaining[0];
+    // pick from used but not bg/text
+    secondary = bySat.find(c => c.idx !== bg.idx && c.idx !== text.idx && c.idx !== primary.idx) || byLum[2];
+  } else {
+    primary = bySat[0];
+    secondary = bySat[1];
+  }
+
+  return { bg, surface, text, primary, secondary };
+}
+
+function applyPalette(roles) {
+  const root = document.documentElement;
+  for (const role of ROLES) {
+    const hex = rgbToHex(...roles[role].rgb);
+    root.style.setProperty(`--color-${role}`, hex);
+  }
+  updateSwatches(roles);
+  updateWCAG(roles);
+  updateCSSOutput(roles);
+}
+
+function updateSwatches(roles) {
+  const container = document.getElementById('swatches');
+  container.innerHTML = '';
+  ROLES.forEach((role, i) => {
+    const c = roles[role];
+    const hex = rgbToHex(...c.rgb);
+    const textColor = luminance(...c.rgb) > 0.4 ? '#000' : '#fff';
+    const isLocked = locked[i];
+    container.innerHTML += `
+      <div class="swatch" onclick="cycleLock(${i})" title="Click to ${isLocked ? 'unlock' : 'lock'}">
+        <div class="swatch-color" style="background:${hex};color:${textColor}">
+          ${hex.toUpperCase()}
+        </div>
+        <div class="swatch-info">
+          <span class="swatch-role">${ROLE_LABELS[role]}</span>
+          <span class="swatch-hex">L: ${(luminance(...c.rgb)).toFixed(2)}</span>
+        </div>
+        <button class="swatch-lock ${isLocked ? 'locked' : ''}" onclick="event.stopPropagation();cycleLock(${i})">
+          ${isLocked ? '🔒' : '🔓'}
+        </button>
+      </div>`;
+  });
+}
+
+function updateWCAG(roles) {
+  const container = document.getElementById('wcag');
+  const pairs = [
+    ['text', 'bg', 'Text / BG'],
+    ['text', 'surface', 'Text / Surface'],
+    ['primary', 'bg', 'Primary / BG'],
+    ['primary', 'surface', 'Primary / Surface'],
+    ['secondary', 'bg', 'Secondary / BG'],
+  ];
+  container.innerHTML = pairs.map(([fg, bg, label]) => {
+    const ratio = contrastRatio(roles[fg].rgb, roles[bg].rgb);
+    const pass = ratio >= 4.5;
+    return `<span class="wcag-item">
+      <span class="wcag-badge ${pass ? 'wcag-pass' : 'wcag-fail'}">${ratio.toFixed(1)}</span>
+      ${label} ${pass ? '✓ AA' : '✗'}
+    </span>`;
+  }).join('');
+}
+
+function updateCSSOutput(roles) {
+  const lines = ROLES.map(role => {
+    const hex = rgbToHex(...roles[role].rgb);
+    return `  --color-${role}: ${hex};`;
+  });
+  document.getElementById('cssOutput').textContent = `:root {\n${lines.join('\n')}\n}`;
+}
+
+function cycleLock(i) {
+  locked[i] = !locked[i];
+  if (currentColors) {
+    const roles = assignRoles(currentColors);
+    updateSwatches(roles);
+  }
+}
+
+async function generate() {
+  const btn = document.querySelector('.btn-primary');
+  btn.textContent = '...';
+  btn.disabled = true;
+
+  try {
+    // Build input with locked colors
+    const roles = currentColors ? assignRoles(currentColors) : null;
+    const roleOrder = ROLES;
+    const input = roleOrder.map((role, i) => {
+      if (locked[i] && roles) return roles[role].rgb;
+      return 'N';
+    });
+
+    const hasLock = input.some(c => c !== 'N');
+
+    const body = { model: 'default' };
+    if (hasLock && currentColors) {
+      // Colormind expects 5 colors in its own order (not ours)
+      // We need to map our role-based locks back to the original 5 positions
+      const colormindInput = currentColors.map((c, origIdx) => {
+        // Check if this original color is used in any locked role
+        const lockedRoleIdx = roleOrder.findIndex((role, ri) => locked[ri] && roles && roles[role].idx === origIdx);
+        if (lockedRoleIdx !== -1) return c;
+        return 'N';
+      });
+      body.input = colormindInput;
+    }
+
+    const resp = await fetch('http://colormind.io/api/', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+    const data = await resp.json();
+    currentColors = data.result;
+    const assignedRoles = assignRoles(currentColors);
+    applyPalette(assignedRoles);
+  } catch (e) {
+    console.error('Colormind API error:', e);
+    // Fallback: generate random
+    currentColors = Array.from({ length: 5 }, () =>
+      [0, 1, 2].map(() => Math.floor(Math.random() * 256))
+    );
+    applyPalette(assignRoles(currentColors));
+  } finally {
+    btn.textContent = 'Generate';
+    btn.disabled = false;
+  }
+}
+
+function toggleMode() {
+  darkMode = !darkMode;
+  document.getElementById('modeBtn').textContent = darkMode ? '☀️ Light' : '🌙 Dark';
+  if (currentColors) {
+    applyPalette(assignRoles(currentColors));
+  }
+}
+
+function copyCSS() {
+  const text = document.getElementById('cssOutput').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.btn-outline');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+// Initial generate on load
+generate();
+</script>
+</body>
+</html>
