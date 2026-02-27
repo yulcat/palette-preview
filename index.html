@@ -231,9 +231,10 @@
   </div>
   <select class="scheme-select" id="schemeSelect">
     <option value="mono">Monochromatic</option>
-    <option value="analogous">Analogous (±30°)</option>
+    <option value="analogous">Analogous (±40°)</option>
     <option value="complementary">Complementary</option>
     <option value="split">Split Complementary</option>
+    <option value="colormind">🤖 Colormind API</option>
   </select>
   <button class="btn btn-primary" onclick="randomize()">🎲 Random</button>
   <button class="btn btn-outline" onclick="copyCSS()">Copy CSS</button>
@@ -401,39 +402,118 @@ function makeColor(L, C, H) {
   };
 }
 
+// RGB → OKLCH (for Colormind import)
+function rgbToOklch(r, g, b) {
+  // sRGB → linear
+  const lr = srgbToLinear(r / 255);
+  const lg = srgbToLinear(g / 255);
+  const lb = srgbToLinear(b / 255);
+
+  // linear sRGB → LMS (via OKLab matrix)
+  const l_ = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+  const m_ = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+  const s_ = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+
+  const L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_;
+  const a = 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_;
+  const bv = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_;
+
+  const C = Math.sqrt(a * a + bv * bv);
+  let H = Math.atan2(bv, a) * 180 / Math.PI;
+  if (H < 0) H += 360;
+
+  return [L, C, H];
+}
+
 function generatePalette(hue, scheme) {
   const H = hue;
 
   // Determine secondary hue based on scheme
   let H2;
   switch (scheme) {
-    case 'analogous':      H2 = (H + 30) % 360; break;
+    case 'analogous':      H2 = (H + 40) % 360; break;
     case 'complementary':  H2 = (H + 180) % 360; break;
     case 'split':          H2 = (H + 150) % 360; break;
     default:               H2 = H; break; // mono: same hue, different chroma
   }
 
+  // Primary always dominant: higher chroma, optimal lightness
+  // Secondary always subordinate: lower chroma, shifted lightness
   if (darkMode) {
-    // Dark mode: dark bg with hint of hue, light text
     return {
-      bg:        makeColor(0.18, 0.01, H),       // very dark, barely tinted
-      surface:   makeColor(0.23, 0.015, H),      // slightly lighter surface
-      text:      makeColor(0.93, 0.01, H),        // near white, hue-tinted
-      textMuted: makeColor(0.65, 0.02, H),        // muted text
-      primary:   makeColor(0.70, 0.16, H),        // vibrant but not blinding
-      secondary: makeColor(0.65, scheme === 'mono' ? 0.10 : 0.14, H2),
-      border:    makeColor(0.32, 0.02, H),        // subtle border
+      bg:        makeColor(0.18, 0.01, H),
+      surface:   makeColor(0.23, 0.015, H),
+      text:      makeColor(0.93, 0.01, H),
+      textMuted: makeColor(0.65, 0.02, H),
+      primary:   makeColor(0.70, 0.17, H),
+      secondary: makeColor(0.58, scheme === 'mono' ? 0.07 : 0.10, H2), // clearly subordinate
+      border:    makeColor(0.32, 0.02, H),
     };
   } else {
-    // Light mode: light bg with hint of hue, dark text
     return {
-      bg:        makeColor(0.95, 0.008, H),       // near white, barely tinted
-      surface:   makeColor(0.99, 0.003, H),       // almost pure white
-      text:      makeColor(0.20, 0.015, H),        // near black, hue-tinted
-      textMuted: makeColor(0.50, 0.03, H),         // muted text
-      primary:   makeColor(0.55, 0.19, H),         // rich accent
-      secondary: makeColor(0.60, scheme === 'mono' ? 0.12 : 0.16, H2),
-      border:    makeColor(0.88, 0.01, H),         // subtle border
+      bg:        makeColor(0.95, 0.008, H),
+      surface:   makeColor(0.99, 0.003, H),
+      text:      makeColor(0.20, 0.015, H),
+      textMuted: makeColor(0.50, 0.03, H),
+      primary:   makeColor(0.55, 0.20, H),         // high chroma, clear star
+      secondary: makeColor(0.68, scheme === 'mono' ? 0.08 : 0.12, H2), // lighter, less chroma
+      border:    makeColor(0.88, 0.01, H),
+    };
+  }
+}
+
+// Colormind: fetch 5 colors, extract primary/secondary, derive the rest
+async function generateFromColormind() {
+  const resp = await fetch('http://colormind.io/api/', {
+    method: 'POST',
+    body: JSON.stringify({ model: 'default' })
+  });
+  const data = await resp.json();
+  const colors = data.result; // 5x [r,g,b]
+
+  // Convert all to OKLCH and rank by chroma
+  const withOklch = colors.map((rgb, i) => {
+    const [L, C, H] = rgbToOklch(...rgb);
+    return { rgb, L, C, H, idx: i };
+  });
+
+  // Sort by chroma descending — most vivid first
+  const byChroma = [...withOklch].sort((a, b) => b.C - a.C);
+
+  // Primary = most chromatic, Secondary = second most (but ensure subordinate)
+  const pri = byChroma[0];
+  const sec = byChroma[1];
+
+  const H = pri.H;
+
+  // Derive neutrals from primary hue (tinted neutrals)
+  if (darkMode) {
+    return {
+      bg:        makeColor(0.18, 0.01, H),
+      surface:   makeColor(0.23, 0.015, H),
+      text:      makeColor(0.93, 0.01, H),
+      textMuted: makeColor(0.65, 0.02, H),
+      primary:   makeColor(pri.L, pri.C, pri.H),
+      secondary: makeColor(
+        Math.min(sec.L, pri.L - 0.08),  // ensure visually subordinate
+        Math.min(sec.C, pri.C * 0.7),
+        sec.H
+      ),
+      border:    makeColor(0.32, 0.02, H),
+    };
+  } else {
+    return {
+      bg:        makeColor(0.95, 0.008, H),
+      surface:   makeColor(0.99, 0.003, H),
+      text:      makeColor(0.20, 0.015, H),
+      textMuted: makeColor(0.50, 0.03, H),
+      primary:   makeColor(pri.L, pri.C, pri.H),
+      secondary: makeColor(
+        Math.max(sec.L, pri.L + 0.08),  // lighter than primary
+        Math.min(sec.C, pri.C * 0.65),
+        sec.H
+      ),
+      border:    makeColor(0.88, 0.01, H),
     };
   }
 }
@@ -531,17 +611,42 @@ function updateCSSOutput(palette) {
 // UI Handlers
 // ═══════════════════════════════════════════════════════════
 
-function update() {
+async function update() {
   const hue = parseInt(document.getElementById('hueSlider').value);
   const scheme = document.getElementById('schemeSelect').value;
   document.getElementById('hueValue').textContent = hue + '°';
-  applyPalette(generatePalette(hue, scheme));
+
+  // Disable hue slider for Colormind (it picks its own colors)
+  document.getElementById('hueSlider').disabled = (scheme === 'colormind');
+  document.querySelector('.hue-control').style.opacity = (scheme === 'colormind') ? '0.4' : '1';
+
+  if (scheme === 'colormind') {
+    try {
+      const palette = await generateFromColormind();
+      applyPalette(palette);
+      // Update hue slider to show the detected primary hue
+      const detectedHue = Math.round(palette.primary.oklch[2]);
+      document.getElementById('hueSlider').value = detectedHue;
+      document.getElementById('hueValue').textContent = detectedHue + '°';
+    } catch (e) {
+      console.error('Colormind error:', e);
+      // Fallback to mono
+      applyPalette(generatePalette(hue, 'mono'));
+    }
+  } else {
+    applyPalette(generatePalette(hue, scheme));
+  }
 }
 
 function randomize() {
-  const hue = Math.floor(Math.random() * 360);
-  document.getElementById('hueSlider').value = hue;
-  update();
+  const scheme = document.getElementById('schemeSelect').value;
+  if (scheme === 'colormind') {
+    update(); // re-fetch from Colormind
+  } else {
+    const hue = Math.floor(Math.random() * 360);
+    document.getElementById('hueSlider').value = hue;
+    update();
+  }
 }
 
 function toggleMode() {
