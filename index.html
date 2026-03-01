@@ -358,7 +358,7 @@ const ROLE_LABELS = {
   'text-muted': 'Muted', text: 'Text',
   primary: 'Primary', 'primary-text': 'Primary Text', secondary: 'Secondary',
 };
-const ROLE_ORDER_BASE = ['bg', 'surface', 'border', 'text-muted', 'text', 'primary', 'secondary'];
+const ROLE_ORDER_BASE = ['bg', 'surface', 'border', 'text-muted', 'text', 'primary', 'primary-text', 'secondary'];
 const ROLE_ORDER_DARK = ['bg', 'surface', 'border', 'text-muted', 'text', 'primary', 'primary-text', 'secondary'];
 
 function luminance(hex) {
@@ -384,17 +384,14 @@ function update() {
 
   const { tokens, colorScale, neutralScale, secondaryScale, wcag } = result;
   const roles = darkMode ? DARK_ROLES : LIGHT_ROLES;
-  const ROLE_ORDER = darkMode ? ROLE_ORDER_DARK : ROLE_ORDER_BASE;
+  const ROLE_ORDER = ROLE_ORDER_BASE; // same structure for both modes now
 
   // Apply CSS variables
   const root = document.documentElement;
   for (const [role, hex] of Object.entries(tokens)) {
     root.style.setProperty(`--color-${role}`, hex);
   }
-  // primary-text fallback for light mode (no separate token)
-  if (!tokens['primary-text']) {
-    root.style.setProperty('--color-primary-text', tokens['primary']);
-  }
+
 
   // Swatches
   document.getElementById('swatches').innerHTML = ROLE_ORDER.map(role => {
@@ -430,7 +427,7 @@ function update() {
     }).join('');
 
   // CSS output
-  const cssLines = (darkMode ? ROLE_ORDER_DARK : ROLE_ORDER_BASE).map(role => `  --color-${role}: ${tokens[role]};`);
+  const cssLines = ROLE_ORDER_BASE.map(role => `  --color-${role}: ${tokens[role]};`);
   document.getElementById('cssOutput').textContent = `:root {\n${cssLines.join('\n')}\n}`;
 }
 
