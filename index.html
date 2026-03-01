@@ -56,9 +56,10 @@
   .btn:active { transform: scale(0.97); }
   .btn-primary { background: var(--color-primary); color: #fff; }
   .btn-secondary { background: var(--color-secondary); color: var(--color-text); }
+  :root { --color-primary-text: var(--color-primary); }
   .btn-outline {
-    background: transparent; border: 2px solid var(--color-primary);
-    color: var(--color-primary);
+    background: transparent; border: 2px solid var(--color-primary-text);
+    color: var(--color-primary-text);
   }
   .mode-toggle {
     background: var(--color-text); color: var(--color-bg);
@@ -335,7 +336,7 @@
 
   <div class="preview-footer">
     Built with 🎨 Palette Preview — Powered by
-    <a href="https://github.com/meodai/dittoTones" target="_blank" style="color:var(--color-primary)">dittoTones</a>
+    <a href="https://github.com/meodai/dittoTones" target="_blank" style="color:var(--color-primary-text)">dittoTones</a>
     (Tailwind v4 color DNA)
   </div>
 </div>
@@ -389,6 +390,10 @@ function update() {
   const root = document.documentElement;
   for (const [role, hex] of Object.entries(tokens)) {
     root.style.setProperty(`--color-${role}`, hex);
+  }
+  // primary-text fallback for light mode (no separate token)
+  if (!tokens['primary-text']) {
+    root.style.setProperty('--color-primary-text', tokens['primary']);
   }
 
   // Swatches
